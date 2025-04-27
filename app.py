@@ -13,16 +13,27 @@ def index():
 def generate():
     data = request.get_json()
     prefix = data.get('prefix', '')
+    suffix = data.get('suffix', '')
     start = time.time()
     tries = 0
     prefix_lower = prefix.lower()
+    suffix_lower = suffix.lower()
     while True:
         signing_key = SigningKey.generate()
         verify_key = signing_key.verify_key
         pub_bytes = verify_key.encode()
         pub = base58.b58encode(pub_bytes).decode()
         tries += 1
-        if pub.lower().startswith(prefix_lower):
+        pub_lower = pub.lower()
+        if prefix_lower and suffix_lower:
+            condition = pub_lower.startswith(prefix_lower) and pub_lower.endswith(suffix_lower)
+        elif prefix_lower:
+            condition = pub_lower.startswith(prefix_lower)
+        elif suffix_lower:
+            condition = pub_lower.endswith(suffix_lower)
+        else:
+            condition = True
+        if condition:
             elapsed = time.time() - start
             secret_bytes = signing_key.encode() + pub_bytes
             secret = base58.b58encode(secret_bytes).decode()
