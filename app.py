@@ -1,18 +1,23 @@
 from flask import Flask, render_template, request, jsonify
 from nacl.signing import SigningKey
 import base58
-try:
-    import numpy as np
-    import pycuda.autoinit  # initializes CUDA
-    from pycuda import curandom
-    rng = curandom.XORWOWRandomNumberGenerator()
-except ImportError:
-    rng = None
-    import logging
-    logging.warning("PyCUDA not available, GPU mode disabled")
 import time
 import threading
 import multiprocessing
+try:
+    import numpy as np
+    import pycuda.autoinit  # initializes CUDA driver
+    from pycuda import curandom
+    try:
+        rng = curandom.XORWOWRandomNumberGenerator()
+    except Exception as e:
+        import logging
+        logging.warning(f"PyCUDA RNG init failed: {e}")
+        rng = None
+except Exception as e:
+    import logging
+    logging.warning(f"PyCUDA not available: {e}")
+    rng = None
 
 app = Flask(__name__)
 
