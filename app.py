@@ -1,6 +1,15 @@
 from flask import Flask, render_template, request, jsonify
 from nacl.signing import SigningKey
 import base58
+try:
+    import numpy as np
+    import pycuda.autoinit  # initializes CUDA
+    from pycuda import curandom
+    rng = curandom.XORWOWRandomNumberGenerator()
+except ImportError:
+    rng = None
+    import logging
+    logging.warning("PyCUDA not available, GPU mode disabled")
 import time
 import threading
 import multiprocessing
@@ -18,6 +27,8 @@ def generate():
     suffix = data.get('suffix', '')
     prefix_lower = prefix.lower()
     suffix_lower = suffix.lower()
+    use_gpu = data.get('use_gpu', False)
+    app.logger.info(f"GPU mode selected: {use_gpu}")
     start = time.time()
     result = {}
     found_event = threading.Event()
@@ -26,7 +37,13 @@ def generate():
     def worker():
         local_tries = 0
         while not found_event.is_set():
-            sk = SigningKey.generate()
+            if use_gpu and rng:
+                # generate 32-byte seed on GPU
+                arr = rng.gen_uint32(8)
+                seed = arr.astype(np.uint32).view(np.uint8).tobytes()
+                sk = SigningKey(seed)
+            else:
+                sk = SigningKey.generate()
             vk = sk.verify_key
             pub = base58.b58encode(vk.encode()).decode()
             local_tries += 1
