@@ -4,20 +4,6 @@ import base58
 import time
 import threading
 import multiprocessing
-try:
-    import numpy as np
-    import pycuda.autoinit  # initializes CUDA driver
-    from pycuda import curandom
-    try:
-        rng = curandom.XORWOWRandomNumberGenerator()
-    except Exception as e:
-        import logging
-        logging.warning(f"PyCUDA RNG init failed: {e}")
-        rng = None
-except Exception as e:
-    import logging
-    logging.warning(f"PyCUDA not available: {e}")
-    rng = None
 
 app = Flask(__name__)
 
@@ -32,8 +18,6 @@ def generate():
     suffix = data.get('suffix', '')
     prefix_lower = prefix.lower()
     suffix_lower = suffix.lower()
-    use_gpu = data.get('use_gpu', False)
-    app.logger.info(f"GPU mode selected: {use_gpu}")
     start = time.time()
     result = {}
     found_event = threading.Event()
@@ -42,13 +26,7 @@ def generate():
     def worker():
         local_tries = 0
         while not found_event.is_set():
-            if use_gpu and rng:
-                # generate 32-byte seed on GPU
-                arr = rng.gen_uint32(8)
-                seed = arr.astype(np.uint32).view(np.uint8).tobytes()
-                sk = SigningKey(seed)
-            else:
-                sk = SigningKey.generate()
+            sk = SigningKey.generate()
             vk = sk.verify_key
             pub = base58.b58encode(vk.encode()).decode()
             local_tries += 1

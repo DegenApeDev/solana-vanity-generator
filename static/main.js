@@ -12,11 +12,10 @@ document.getElementById('generate').addEventListener('click', async () => {
             warningDiv.textContent = 'Selecting both prefix and suffix may take significantly longer.';
             warningDiv.style.display = 'block';
         }
-        const use_gpu = document.getElementById('use_gpu').checked;
         const response = await fetch('/generate', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({prefix, suffix, use_gpu})
+            body: JSON.stringify({prefix, suffix})
         });
         const data = await response.json();
         spinner.style.display = 'none';
